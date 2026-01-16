@@ -46,7 +46,7 @@ fn run(terminal: &mut Terminal<CrosstermBackend<io::Stdout>>, app: &mut App) -> 
                     if app.show_terminate_popup {
                         // Handle popup keys
                         match key.code {
-                            KeyCode::Esc => app.close_popup(),
+                            KeyCode::Esc | KeyCode::Char('q') => app.close_popup(),
                             KeyCode::Left | KeyCode::Char('h') => app.popup_prev(),
                             KeyCode::Right | KeyCode::Char('l') => app.popup_next(),
                             KeyCode::Tab => app.popup_next(),
@@ -54,6 +54,19 @@ fn run(terminal: &mut Terminal<CrosstermBackend<io::Stdout>>, app: &mut App) -> 
                             KeyCode::Enter => {
                                 if let Some((pid, force)) = app.execute_popup_action() {
                                     kill_process(pid, force, app);
+                                }
+                            }
+                            // Direct shortcuts
+                            KeyCode::Char('t') => {
+                                if let Some(pid) = app.get_selected_port().map(|p| p.pid) {
+                                    app.close_popup();
+                                    kill_process(pid, false, app);
+                                }
+                            }
+                            KeyCode::Char('k') => {
+                                if let Some(pid) = app.get_selected_port().map(|p| p.pid) {
+                                    app.close_popup();
+                                    kill_process(pid, true, app);
                                 }
                             }
                             _ => {}

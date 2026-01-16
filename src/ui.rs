@@ -293,11 +293,11 @@ fn render_terminate_popup(frame: &mut Frame, app: &App) {
     let button_bg = Style::default().bg(popup_bg);
     let buttons = Line::from(vec![
         Span::styled("  ", button_bg),
-        Span::styled(" Cancel ", cancel_style),
+        Span::styled(" Cancel (q) ", cancel_style),
         Span::styled("   ", button_bg),
-        Span::styled(" Terminate ", term_style),
+        Span::styled(" Terminate (t) ", term_style),
         Span::styled("   ", button_bg),
-        Span::styled(" Force Kill ", kill_style),
+        Span::styled(" Force Kill (k) ", kill_style),
         Span::styled("  ", button_bg),
     ]);
 
