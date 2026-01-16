@@ -1,10 +1,10 @@
 [package]
 name = "port-checker"
-version = "0.1.0"
+version = "1.0.0"
 edition = "2021"
 description = "A TUI utility to list listening TCP ports with process details"
 license = "MIT"
-repository = "https://github.com/user/port-checker"
+repository = "https://github.com/imatefx/process-port-check-tui"
 keywords = ["tui", "ports", "network", "utility"]
 categories = ["command-line-utilities"]
 
