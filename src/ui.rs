@@ -84,7 +84,7 @@ fn render_table(frame: &mut Frame, app: &mut App, area: Rect) {
     frame.render_stateful_widget(table, area, &mut app.table_state);
 
     if let Some(error) = &app.error {
-        let error_msg = Paragraph::new(format!("Error: {}", error))
+        let error_msg = Paragraph::new(format!("Error: {error}"))
             .style(Style::default().fg(Color::Red));
         let error_area = Rect {
             x: area.x + 2,

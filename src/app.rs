@@ -2,8 +2,15 @@ use crate::ports::{get_listening_ports, PortInfo};
 use ratatui::widgets::TableState;
 use std::time::Instant;
 
-#[derive(Clone, Copy, PartialEq)]
+/// How long status messages are shown (seconds)
+const STATUS_DISPLAY_DURATION_SECS: u64 = 2;
+
+/// Horizontal scroll step size
+const SCROLL_STEP: u16 = 10;
+
+#[derive(Clone, Copy, PartialEq, Eq, Default)]
 pub enum PopupButton {
+    #[default]
     Cancel,
     Terminate,
     ForceKill,
@@ -18,6 +25,12 @@ pub struct App {
     pub status_time: Option<Instant>,
     pub show_terminate_popup: bool,
     pub popup_selection: PopupButton,
+}
+
+impl Default for App {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl App {
@@ -40,7 +53,7 @@ impl App {
             status_message: None,
             status_time: None,
             show_terminate_popup: false,
-            popup_selection: PopupButton::Cancel,
+            popup_selection: PopupButton::default(),
         }
     }
 
@@ -50,23 +63,28 @@ impl App {
             Ok(p) => {
                 self.ports = p;
                 self.error = None;
-                if let Some(selected) = self.table_state.selected() {
-                    if selected >= self.ports.len() {
-                        self.table_state.select(if self.ports.is_empty() {
-                            None
-                        } else {
-                            Some(self.ports.len() - 1)
-                        });
-                    }
-                } else if !self.ports.is_empty() {
-                    self.table_state.select(Some(0));
-                }
+                self.adjust_selection();
                 self.set_status(&format!("Refreshed - {} ports", self.ports.len()));
             }
             Err(e) => {
                 self.error = Some(e.to_string());
                 self.set_status("Refresh failed");
             }
+        }
+    }
+
+    /// Adjust selection to stay within bounds after port list changes
+    fn adjust_selection(&mut self) {
+        if let Some(selected) = self.table_state.selected() {
+            if selected >= self.ports.len() {
+                self.table_state.select(if self.ports.is_empty() {
+                    None
+                } else {
+                    Some(self.ports.len() - 1)
+                });
+            }
+        } else if !self.ports.is_empty() {
+            self.table_state.select(Some(0));
         }
     }
 
@@ -77,7 +95,7 @@ impl App {
 
     pub fn clear_old_status(&mut self) {
         if let Some(time) = self.status_time {
-            if time.elapsed().as_secs() >= 2 {
+            if time.elapsed().as_secs() >= STATUS_DISPLAY_DURATION_SECS {
                 self.status_message = None;
                 self.status_time = None;
             }
@@ -107,17 +125,17 @@ impl App {
     }
 
     pub fn scroll_left(&mut self) {
-        self.scroll_offset = self.scroll_offset.saturating_sub(10);
+        self.scroll_offset = self.scroll_offset.saturating_sub(SCROLL_STEP);
     }
 
     pub fn scroll_right(&mut self) {
-        self.scroll_offset = self.scroll_offset.saturating_add(10);
+        self.scroll_offset = self.scroll_offset.saturating_add(SCROLL_STEP);
     }
 
     pub fn open_terminate_popup(&mut self) {
         if self.table_state.selected().is_some() && !self.ports.is_empty() {
             self.show_terminate_popup = true;
-            self.popup_selection = PopupButton::Cancel;
+            self.popup_selection = PopupButton::default();
         }
     }
 
@@ -146,25 +164,16 @@ impl App {
     }
 
     pub fn execute_popup_action(&mut self) -> Option<(u32, bool)> {
-        if let Some(port_info) = self.get_selected_port() {
-            let pid = port_info.pid;
+        let result = self.get_selected_port().and_then(|p| {
+            let pid = p.pid;
             match self.popup_selection {
-                PopupButton::Cancel => {
-                    self.close_popup();
-                    None
-                }
-                PopupButton::Terminate => {
-                    self.close_popup();
-                    Some((pid, false)) // false = SIGTERM
-                }
-                PopupButton::ForceKill => {
-                    self.close_popup();
-                    Some((pid, true)) // true = SIGKILL
-                }
+                PopupButton::Cancel => None,
+                PopupButton::Terminate => Some((pid, false)),
+                PopupButton::ForceKill => Some((pid, true)),
             }
-        } else {
-            self.close_popup();
-            None
-        }
+        });
+
+        self.close_popup();
+        result
     }
 }

@@ -5,7 +5,6 @@ use std::path::PathBuf;
 #[derive(Clone, Debug)]
 pub struct PortInfo {
     pub port: u16,
-    pub address: String,
     pub pid: u32,
     pub process_name: String,
     pub exe_path: Option<PathBuf>,
@@ -30,9 +29,8 @@ pub fn get_listening_ports() -> Result<Vec<PortInfo>, Box<dyn std::error::Error>
     for si in sockets {
         if let ProtocolSocketInfo::Tcp(tcp) = si.protocol_socket_info {
             if tcp.state == TcpState::Listen {
-                let address = format!("{}", tcp.local_addr);
-
-                for pid in &si.associated_pids {
+                // Take only the first associated PID for each socket
+                if let Some(pid) = si.associated_pids.first() {
                     let pid_usize = *pid as usize;
                     let (name, exe, cwd, cmd) = if let Some(proc) = sys.process(Pid::from(pid_usize)) {
                         (
@@ -47,16 +45,12 @@ pub fn get_listening_ports() -> Result<Vec<PortInfo>, Box<dyn std::error::Error>
 
                     ports.push(PortInfo {
                         port: tcp.local_port,
-                        address,
                         pid: *pid,
                         process_name: name,
                         exe_path: exe,
                         cwd,
                         cmd_args: cmd,
                     });
-
-                    // Only take first PID for each socket
-                    break;
                 }
             }
         }

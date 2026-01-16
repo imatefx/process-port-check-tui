@@ -1109,6 +1109,7 @@ dependencies = [
  "color-eyre",
  "crossterm 0.28.1",
  "netstat2",
+ "nix",
  "ratatui",
  "sysinfo",
 ]
