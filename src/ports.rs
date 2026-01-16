@@ -9,6 +9,7 @@ pub struct PortInfo {
     pub pid: u32,
     pub process_name: String,
     pub exe_path: Option<PathBuf>,
+    pub cwd: Option<PathBuf>,
     pub cmd_args: Vec<String>,
 }
 
@@ -33,14 +34,15 @@ pub fn get_listening_ports() -> Result<Vec<PortInfo>, Box<dyn std::error::Error>
 
                 for pid in &si.associated_pids {
                     let pid_usize = *pid as usize;
-                    let (name, exe, cmd) = if let Some(proc) = sys.process(Pid::from(pid_usize)) {
+                    let (name, exe, cwd, cmd) = if let Some(proc) = sys.process(Pid::from(pid_usize)) {
                         (
                             proc.name().to_string_lossy().to_string(),
                             proc.exe().map(|p| p.to_path_buf()),
+                            proc.cwd().map(|p| p.to_path_buf()),
                             proc.cmd().iter().map(|s| s.to_string_lossy().to_string()).collect(),
                         )
                     } else {
-                        (String::from("unknown"), None, vec![])
+                        (String::from("unknown"), None, None, vec![])
                     };
 
                     ports.push(PortInfo {
@@ -49,6 +51,7 @@ pub fn get_listening_ports() -> Result<Vec<PortInfo>, Box<dyn std::error::Error>
                         pid: *pid,
                         process_name: name,
                         exe_path: exe,
+                        cwd,
                         cmd_args: cmd,
                     });
 
@@ -74,8 +77,8 @@ mod tests {
         println!("Found {} listening ports:", ports.len());
         for p in &ports {
             println!(
-                "  Port {} - PID {} - {} - {:?}",
-                p.port, p.pid, p.process_name, p.exe_path
+                "  Port {} - PID {} - {} - cwd: {:?}",
+                p.port, p.pid, p.process_name, p.cwd
             );
         }
         // Should at least run without error

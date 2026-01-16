@@ -130,9 +130,9 @@ fn render_footer(frame: &mut Frame, app: &App, area: Rect) {
 fn render_terminate_popup(frame: &mut Frame, app: &App) {
     let area = frame.area();
 
-    // Calculate popup size - wider to show more content
+    // Calculate popup size - wider and taller to show more content
     let popup_width = 80.min(area.width.saturating_sub(4));
-    let popup_height = 20.min(area.height.saturating_sub(4));
+    let popup_height = 24.min(area.height.saturating_sub(4));
 
     // Center the popup
     let popup_area = centered_rect(popup_width, popup_height, area);
@@ -146,6 +146,11 @@ fn render_terminate_popup(frame: &mut Frame, app: &App) {
 
     let (title, details) = if let Some(p) = port_info {
         let path_str = p.exe_path
+            .as_ref()
+            .map(|path| path.to_string_lossy().to_string())
+            .unwrap_or_else(|| "-".to_string());
+
+        let cwd_str = p.cwd
             .as_ref()
             .map(|path| path.to_string_lossy().to_string())
             .unwrap_or_else(|| "-".to_string());
@@ -177,6 +182,16 @@ fn render_terminate_popup(frame: &mut Frame, app: &App) {
 
         // Add wrapped path lines
         for line in wrap_text(&path_str, content_width) {
+            lines.push(Line::from(line));
+        }
+
+        lines.push(Line::from(""));
+        lines.push(Line::from(vec![
+            Span::styled("Working Dir:", Style::default().add_modifier(Modifier::BOLD)),
+        ]));
+
+        // Add wrapped cwd lines
+        for line in wrap_text(&cwd_str, content_width) {
             lines.push(Line::from(line));
         }
 
