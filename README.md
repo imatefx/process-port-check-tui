@@ -29,6 +29,14 @@ tar -xzf port-checker-v1.0.0-macos-arm64.tar.gz
 # macOS x64 (Intel)
 tar -xzf port-checker-v1.0.0-macos-x64.tar.gz
 ./port-checker-macos-x64
+
+# Linux ARM64
+tar -xzf port-checker-v1.0.0-linux-arm64.tar.gz
+./port-checker-linux-arm64
+
+# Linux x64
+tar -xzf port-checker-v1.0.0-linux-x64.tar.gz
+./port-checker-linux-x64
 ```
 
 ### Build from Source
