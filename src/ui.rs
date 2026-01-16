@@ -198,10 +198,18 @@ fn render_terminate_popup(frame: &mut Frame, app: &App) {
         )
     };
 
+    // Popup styling
+    let popup_bg = Color::Rgb(30, 35, 45);
+    let border_color = Color::Rgb(100, 150, 200);
+    let title_style = Style::default()
+        .fg(Color::Rgb(150, 200, 255))
+        .add_modifier(Modifier::BOLD);
+
     let block = Block::default()
-        .title(title)
+        .title(Span::styled(title, title_style))
         .borders(Borders::ALL)
-        .border_style(Style::default().fg(Color::Cyan));
+        .border_style(Style::default().fg(border_color))
+        .style(Style::default().bg(popup_bg));
 
     // Split popup into content and buttons
     let inner = block.inner(popup_area);
@@ -213,49 +221,72 @@ fn render_terminate_popup(frame: &mut Frame, app: &App) {
 
     frame.render_widget(block, popup_area);
 
-    // Render process details
-    let details_paragraph = Paragraph::new(details);
+    // Render process details with background
+    let label_style = Style::default()
+        .fg(Color::Rgb(130, 180, 230))
+        .add_modifier(Modifier::BOLD);
+    let value_style = Style::default().fg(Color::Rgb(220, 220, 220));
+
+    // Re-style the details with better colors
+    let styled_details: Vec<Line> = details.into_iter().map(|line| {
+        let spans: Vec<Span> = line.spans.into_iter().map(|span| {
+            if span.style.add_modifier.contains(Modifier::BOLD) {
+                Span::styled(span.content, label_style)
+            } else {
+                Span::styled(span.content, value_style)
+            }
+        }).collect();
+        Line::from(spans)
+    }).collect();
+
+    let details_paragraph = Paragraph::new(styled_details)
+        .style(Style::default().bg(popup_bg));
     frame.render_widget(details_paragraph, chunks[0]);
 
-    // Render buttons
-    let button_style = Style::default().fg(Color::White);
-    let selected_style = Style::default()
+    // Render buttons with better styling
+    let button_normal = Style::default()
+        .fg(Color::Rgb(180, 180, 180))
+        .bg(Color::Rgb(50, 55, 65));
+    let button_selected = Style::default()
         .fg(Color::Black)
-        .bg(Color::White)
+        .bg(Color::Rgb(100, 200, 255))
+        .add_modifier(Modifier::BOLD);
+    let button_danger = Style::default()
+        .fg(Color::Rgb(255, 100, 100))
+        .bg(Color::Rgb(50, 55, 65));
+    let button_danger_selected = Style::default()
+        .fg(Color::White)
+        .bg(Color::Rgb(200, 60, 60))
         .add_modifier(Modifier::BOLD);
 
     let cancel_style = if app.popup_selection == PopupButton::Cancel {
-        selected_style
+        button_selected
     } else {
-        button_style
+        button_normal
     };
     let term_style = if app.popup_selection == PopupButton::Terminate {
-        selected_style
+        button_selected
     } else {
-        button_style
+        button_normal
     };
     let kill_style = if app.popup_selection == PopupButton::ForceKill {
-        selected_style
+        button_danger_selected
     } else {
-        Style::default().fg(Color::Red)
-    };
-    let kill_selected_style = if app.popup_selection == PopupButton::ForceKill {
-        selected_style
-    } else {
-        kill_style
+        button_danger
     };
 
+    let button_bg = Style::default().bg(popup_bg);
     let buttons = Line::from(vec![
-        Span::raw("  "),
+        Span::styled("  ", button_bg),
         Span::styled(" Cancel ", cancel_style),
-        Span::raw("   "),
-        Span::styled(" Terminate (SIGTERM) ", term_style),
-        Span::raw("   "),
-        Span::styled(" Force Kill (SIGKILL) ", kill_selected_style),
-        Span::raw("  "),
+        Span::styled("   ", button_bg),
+        Span::styled(" Terminate ", term_style),
+        Span::styled("   ", button_bg),
+        Span::styled(" Force Kill ", kill_style),
+        Span::styled("  ", button_bg),
     ]);
 
-    frame.render_widget(Paragraph::new(buttons), chunks[2]);
+    frame.render_widget(Paragraph::new(buttons).style(button_bg), chunks[2]);
 }
 
 fn centered_rect(width: u16, height: u16, area: Rect) -> Rect {
