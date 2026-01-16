@@ -2,7 +2,9 @@
 
 A fast, lightweight TUI utility to list all listening TCP ports with full process details. Built with Rust and [ratatui](https://ratatui.rs/).
 
-![Port Checker Screenshot](assets/screenshot.png)
+![Port Checker List View](assets/screenshot-list.png)
+
+![Port Checker Process Details](assets/screenshot-popup.png)
 
 ## Features
 
