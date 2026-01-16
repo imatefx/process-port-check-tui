@@ -130,9 +130,9 @@ fn render_footer(frame: &mut Frame, app: &App, area: Rect) {
 fn render_terminate_popup(frame: &mut Frame, app: &App) {
     let area = frame.area();
 
-    // Calculate popup size
-    let popup_width = 60.min(area.width.saturating_sub(4));
-    let popup_height = 14.min(area.height.saturating_sub(4));
+    // Calculate popup size - wider to show more content
+    let popup_width = 80.min(area.width.saturating_sub(4));
+    let popup_height = 20.min(area.height.saturating_sub(4));
 
     // Center the popup
     let popup_area = centered_rect(popup_width, popup_height, area);
@@ -142,6 +142,7 @@ fn render_terminate_popup(frame: &mut Frame, app: &App) {
 
     // Get selected port info
     let port_info = app.get_selected_port();
+    let content_width = popup_width as usize - 4;
 
     let (title, details) = if let Some(p) = port_info {
         let path_str = p.exe_path
@@ -155,33 +156,41 @@ fn render_terminate_popup(frame: &mut Frame, app: &App) {
             p.cmd_args.join(" ")
         };
 
-        (
-            format!(" Process Details (Port {}) ", p.port),
-            vec![
-                Line::from(vec![
-                    Span::styled("Process: ", Style::default().add_modifier(Modifier::BOLD)),
-                    Span::raw(&p.process_name),
-                ]),
-                Line::from(vec![
-                    Span::styled("PID:     ", Style::default().add_modifier(Modifier::BOLD)),
-                    Span::raw(p.pid.to_string()),
-                ]),
-                Line::from(vec![
-                    Span::styled("Port:    ", Style::default().add_modifier(Modifier::BOLD)),
-                    Span::raw(p.port.to_string()),
-                ]),
-                Line::from(""),
-                Line::from(vec![
-                    Span::styled("Path:", Style::default().add_modifier(Modifier::BOLD)),
-                ]),
-                Line::from(truncate_path(&path_str, popup_width as usize - 4)),
-                Line::from(""),
-                Line::from(vec![
-                    Span::styled("Command:", Style::default().add_modifier(Modifier::BOLD)),
-                ]),
-                Line::from(truncate_path(&cmd_str, popup_width as usize - 4)),
-            ]
-        )
+        let mut lines = vec![
+            Line::from(vec![
+                Span::styled("Process: ", Style::default().add_modifier(Modifier::BOLD)),
+                Span::raw(&p.process_name),
+            ]),
+            Line::from(vec![
+                Span::styled("PID:     ", Style::default().add_modifier(Modifier::BOLD)),
+                Span::raw(p.pid.to_string()),
+            ]),
+            Line::from(vec![
+                Span::styled("Port:    ", Style::default().add_modifier(Modifier::BOLD)),
+                Span::raw(p.port.to_string()),
+            ]),
+            Line::from(""),
+            Line::from(vec![
+                Span::styled("Path:", Style::default().add_modifier(Modifier::BOLD)),
+            ]),
+        ];
+
+        // Add wrapped path lines
+        for line in wrap_text(&path_str, content_width) {
+            lines.push(Line::from(line));
+        }
+
+        lines.push(Line::from(""));
+        lines.push(Line::from(vec![
+            Span::styled("Command:", Style::default().add_modifier(Modifier::BOLD)),
+        ]));
+
+        // Add wrapped command lines
+        for line in wrap_text(&cmd_str, content_width) {
+            lines.push(Line::from(line));
+        }
+
+        (format!(" Process Details (Port {}) ", p.port), lines)
     } else {
         (
             " Process Details ".to_string(),
@@ -259,10 +268,52 @@ fn centered_rect(width: u16, height: u16, area: Rect) -> Rect {
         .split(horizontal[0])[0]
 }
 
-fn truncate_path(path: &str, max_len: usize) -> String {
-    if path.len() <= max_len {
-        path.to_string()
-    } else {
-        format!("...{}", &path[path.len().saturating_sub(max_len - 3)..])
+fn wrap_text(text: &str, max_width: usize) -> Vec<String> {
+    if text.is_empty() {
+        return vec!["-".to_string()];
     }
+
+    let mut lines = Vec::new();
+    let mut current_line = String::new();
+
+    for word in text.split_whitespace() {
+        if current_line.is_empty() {
+            if word.len() > max_width {
+                // Word is too long, split it
+                let mut remaining = word;
+                while remaining.len() > max_width {
+                    lines.push(remaining[..max_width].to_string());
+                    remaining = &remaining[max_width..];
+                }
+                current_line = remaining.to_string();
+            } else {
+                current_line = word.to_string();
+            }
+        } else if current_line.len() + 1 + word.len() <= max_width {
+            current_line.push(' ');
+            current_line.push_str(word);
+        } else {
+            lines.push(current_line);
+            if word.len() > max_width {
+                let mut remaining = word;
+                while remaining.len() > max_width {
+                    lines.push(remaining[..max_width].to_string());
+                    remaining = &remaining[max_width..];
+                }
+                current_line = remaining.to_string();
+            } else {
+                current_line = word.to_string();
+            }
+        }
+    }
+
+    if !current_line.is_empty() {
+        lines.push(current_line);
+    }
+
+    if lines.is_empty() {
+        lines.push("-".to_string());
+    }
+
+    lines
 }
