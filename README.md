@@ -17,6 +17,12 @@ A fast, lightweight TUI utility to list all listening TCP ports with full proces
 
 ## Installation
 
+### Quick Install (macOS & Linux)
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/imatefx/process-port-check-tui/main/install.sh | sh
+```
+
 ### Download Binary
 
 Download the latest release from the [Releases page](https://github.com/imatefx/process-port-check-tui/releases).
